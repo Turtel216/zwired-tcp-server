@@ -3,7 +3,7 @@ const net = std.net;
 const posix = std.posix;
 
 pub fn main() !void {
-    const address = try std.net.Address.parseIp("127.0.0.1", 5882);
+    const address = try std.net.Address.parseIp("127.0.0.1", 0);
 
     const tpe: u32 = posix.SOCK.STREAM;
     const protocol = posix.IPPROTO.TCP;
@@ -12,6 +12,8 @@ pub fn main() !void {
 
     try posix.setsockopt(listener, posix.SOL.SOCKET, posix.SO.REUSEADDR, &std.mem.toBytes(@as(c_int, 1)));
     try posix.bind(listener, &address.any, address.getOsSockLen());
+
+    try printAddress(listener);
     try posix.listen(listener, 128);
 
     while (true) {
@@ -42,4 +44,12 @@ fn write(socket: posix.socket_t, msg: []const u8) !void {
         }
         pos += written;
     }
+}
+
+fn printAddress(socket: posix.socket_t) !void {
+    var address: std.net.Address = undefined;
+    var len: posix.socklen_t = @sizeOf(net.Address);
+
+    try posix.getsockname(socket, &address.any, &len);
+    std.debug.print("{}\n", .{address});
 }
