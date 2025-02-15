@@ -16,10 +16,10 @@ pub fn main() !void {
     try printAddress(listener);
     try posix.listen(listener, 128);
 
+    var buf: [128]u8 = undefined;
     while (true) {
         var client_address: net.Address = undefined;
         var client_address_len: posix.socklen_t = @sizeOf(net.Address);
-
         const socket = posix.accept(listener, &client_address.any, &client_address_len, 0) catch |err| {
             std.debug.print("error accept: {}\n", .{err});
             continue;
@@ -28,8 +28,16 @@ pub fn main() !void {
 
         std.debug.print("{} connected\n", .{client_address});
 
-        write(socket, "Hello and goodbye") catch |err| {
-            // This can easily happen, say if the client disconnects.
+        const read = posix.read(socket, &buf) catch |err| {
+            std.debug.print("error reading: {}\n", .{err});
+            continue;
+        };
+
+        if (read == 0) {
+            continue;
+        }
+
+        write(socket, buf[0..read]) catch |err| {
             std.debug.print("error writing: {}\n", .{err});
         };
     }
